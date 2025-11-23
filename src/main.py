@@ -40,7 +40,7 @@ async def on_ready():
 async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
 
     player_nickname = player_nickname.strip().replace(" ", "_")
-    player_data_found = False
+    player_games_found = False
 
     await interaction.response.defer()
     try:
@@ -68,7 +68,7 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
         value = result.get(time_control)
         if not value:
             continue
-        player_data_found = True
+        player_games_found = True
         if value > 1.0:
             status = "superioridade"
             percent = abs(int((value - 1.0) * 100))
@@ -83,8 +83,8 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
         else:
             embed.add_field(name=f"{label}", value=f"{value} — {percent}% de {status}", inline=False)
 
-    if not player_data_found:
-        embed.description = f"O jogador {player_nickname} não tem partidas rated para comparar com o Flexzin."
+    if not player_games_found:
+        embed.description = f"O jogador {player_nickname} não tem partidas rated nos últimos 6 meses para comparar com o Flexzin."
     
     await interaction.followup.send(embed=embed)
 
