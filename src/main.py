@@ -17,9 +17,9 @@ chess_com_api_client = ChessComApiClient()
 redis_repository = RedisRepository()
 flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client, redis_repository)
 icons = {
-    "rapid": "🕒 Rapid",
-    "blitz": "⚡ Blitz",
-    "bullet": "💥 Bullet",
+    "rapid": "<:rapid:1442245397589528741> Rapid",
+    "blitz": "<:blitz:1442245840482861259> Blitz",
+    "bullet": "<:bullet:1442246135988228217> Bullet",
 }
 
 def close_redis():
@@ -43,7 +43,7 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
     player_games_found = False
 
     embed = Embed(
-        title=f"♟️ {player_nickname}",
+        title=f"<:chesscom_logo:1442243838432252116> {player_nickname}",
         url=f"https://www.chess.com/member/{(player_nickname)}",
         description="Resultado dos cálculos de Flexzin Force ",
         color=0xEDBE3E
@@ -86,7 +86,7 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
             status = "igualdade"
             percent = 0
         if status == "igualdade":
-            embed.add_field(name=f"{label}", value=f"{value} — igualdade", inline=False)
+            embed.add_field(name=f"{label}", value=f"{value} — igualdade", inline=True)
         else:
             embed.add_field(name=f"{label}", value=f"{value} — {percent}% de {status}", inline=False)
 
