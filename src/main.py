@@ -17,9 +17,9 @@ chess_com_api_client = ChessComApiClient()
 redis_repository = RedisRepository()
 flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client, redis_repository)
 icons = {
-    "rapid": "🕒 Rapid",
-    "blitz": "⚡ Blitz",
-    "bullet": "💥 Bullet",
+    "rapid": "<:rapid:1442245397589528741> Rapid",
+    "blitz": "<:blitz:1442245840482861259> Blitz",
+    "bullet": "<:bullet:1442246135988228217> Bullet",
 }
 
 def close_redis():
@@ -40,9 +40,23 @@ async def on_ready():
 async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
 
     player_nickname = player_nickname.strip().replace(" ", "_")
-    player_data_found = False
+    player_games_found = False
+
+    embed = Embed(
+        title=f"<:chesscom_logo:1442243838432252116> {player_nickname}",
+        url=f"https://www.chess.com/member/{(player_nickname)}",
+        description="Resultado dos cálculos de Flexzin Force ",
+        color=0xEDBE3E
+    )
 
     await interaction.response.defer()
+
+    player_profile = chess_com_api_client.get_player_profile_data(player_nickname)
+    if not player_profile:
+        embed.description = f"O jogador {player_nickname} não existe no Chess.com"
+        await interaction.followup.send(embed=embed)
+        return
+
     try:
         result = await asyncio.wait_for(
             flexzin_force_calculator.get_flexzin_force_by_time_control(player_nickname),
@@ -53,13 +67,6 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
         print(f"Erro inesperado: {e}")
         return
 
-    embed = Embed(
-        title=f"♟️ {player_nickname}",
-        url=f"https://www.chess.com/member/{(player_nickname)}",
-        description="Resultado dos cálculos de Flexzin Force ",
-        color=0xEDBE3E
-    )
-    player_profile = chess_com_api_client.get_player_profile_data(player_nickname)
     avatar_url = player_profile.get("avatar")
     if avatar_url:
         embed.set_thumbnail(url=avatar_url)
@@ -68,7 +75,7 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
         value = result.get(time_control)
         if not value:
             continue
-        player_data_found = True
+        player_games_found = True
         if value > 1.0:
             status = "superioridade"
             percent = abs(int((value - 1.0) * 100))
@@ -79,12 +86,12 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
             status = "igualdade"
             percent = 0
         if status == "igualdade":
-            embed.add_field(name=f"{label}", value=f"{value} — igualdade", inline=False)
+            embed.add_field(name=f"{label}", value=f"{value} — igualdade", inline=True)
         else:
             embed.add_field(name=f"{label}", value=f"{value} — {percent}% de {status}", inline=False)
 
-    if not player_data_found:
-        embed.description = f"O jogador {player_nickname} não tem partidas rated para comparar com o Flexzin."
+    if not player_games_found:
+        embed.description = f"O jogador {player_nickname} não tem partidas rated nos últimos 6 meses para comparar com o Flexzin."
     
     await interaction.followup.send(embed=embed)
 

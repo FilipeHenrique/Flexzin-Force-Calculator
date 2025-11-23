@@ -12,6 +12,8 @@ class ChessComApiClient:
         url = f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}"
         headers = {"User-Agent": "flexzin-force/1.0"}
         resp = requests.get(url, headers=headers)
+        if resp.status_code == 404:
+            return None
         return resp.json()
 
     async def get_games_from_chess_com(self, session, player_nickname, year, month):

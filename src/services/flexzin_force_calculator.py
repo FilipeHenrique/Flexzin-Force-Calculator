@@ -54,7 +54,7 @@ class FlexzinForceCalculator:
                 continue
             average_rating = sum(ratings) / len(ratings)
             square_sum = sum((r - average_rating) ** 2 for r in ratings)
-            standard_deviation = sqrt(square_sum / (len(ratings) - 1))
+            standard_deviation = sqrt(square_sum / max(len(ratings) - 1, 1))
             error_margin = Z * (standard_deviation / sqrt(len(ratings)))
             player_force_by_time_control[time_control] = average_rating - error_margin
 
