@@ -13,15 +13,14 @@ class ChessComApiClient:
             data = await resp.json()
             return data.get("games", [])
 
-    async def get_player_games_from_last_twelve_months(self, player_nickname: str):
+    async def get_player_games_from_last_six_months(self, player_nickname: str):
         tasks = []
         now = datetime.now()
         year = now.year
         month = now.month
 
-        # gera a lista (ano, mês) dos últimos 12 meses corretamente
         months = []
-        for _ in range(12):
+        for _ in range(6):
             months.append((year, month))
             month -= 1
             if month == 0:

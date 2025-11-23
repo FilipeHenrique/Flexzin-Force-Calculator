@@ -12,15 +12,16 @@ class FlexzinForceCalculator:
 
     async def get_flexzin_force_by_time_control(self, player_nickname: str):
         player_task = asyncio.create_task(
-            self.chess_com_api_client.get_player_games_from_last_twelve_months(player_nickname)
+            self.chess_com_api_client.get_player_games_from_last_six_months(player_nickname)
         )
         flexzin_task = asyncio.create_task(
-            self.chess_com_api_client.get_player_games_from_last_twelve_months(FLEXZIN_NICKNAME)
+            self.chess_com_api_client.get_player_games_from_last_six_months(FLEXZIN_NICKNAME)
         )
 
-        player_games_from_last_twelve_months, flexzin_games_from_last_twelve_months = await asyncio.gather(player_task, flexzin_task)
-        player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_twelve_months, player_nickname)
-        flexzin_force_by_time_control = self.calculate_player_force_by_time_control(flexzin_games_from_last_twelve_months, FLEXZIN_NICKNAME)
+        player_games_from_last_six_months, flexzin_games_from_last_six_months = await asyncio.gather(player_task, flexzin_task)
+
+        player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_six_months, player_nickname)
+        flexzin_force_by_time_control = self.calculate_player_force_by_time_control(flexzin_games_from_last_six_months, FLEXZIN_NICKNAME)
 
         flexzin_force_results_by_time_control = {}
         for time_control, player_force in player_force_by_time_control.items():
@@ -29,9 +30,9 @@ class FlexzinForceCalculator:
 
         return flexzin_force_results_by_time_control
 
-    def calculate_player_force_by_time_control(self, player_games_from_last_twelve_months, player_nickname):
+    def calculate_player_force_by_time_control(self, player_games_from_last_six_months, player_nickname):
         player_ratings_by_time_control = {time_control: [] for time_control in TIME_CONTROLS}
-        for month in player_games_from_last_twelve_months: 
+        for month in player_games_from_last_six_months: 
             for game in month:     
                 player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["username"].lower() else game["black"]["rating"]
                 if(game["time_class"] in TIME_CONTROLS) and game["rated"] is True:
