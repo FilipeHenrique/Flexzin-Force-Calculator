@@ -1,19 +1,10 @@
-import os
 import aiohttp
 import asyncio
 from datetime import datetime
 
-import requests
-
-CHESS_COM_BASE_URL = os.getenv("CHESS_COM_BASE_URL", "https://api.chess.com")
+CHESS_COM_BASE_URL = "https://api.chess.com"
 
 class ChessComApiClient:
-    def get_player_profile_data(self, player_nickname: str):
-        url = f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}"
-        headers = {"User-Agent": "flexzin-force/1.0"}
-        resp = requests.get(url, headers=headers)
-        return resp.json()
-
     async def get_games_from_chess_com(self, session, player_nickname, year, month):
         url = f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}/games/{year}/{month}"
         headers = {"User-Agent": "flexzin-force/1.0"}

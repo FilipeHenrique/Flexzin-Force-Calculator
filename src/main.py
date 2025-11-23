@@ -1,29 +1,74 @@
+import atexit
 import asyncio
+import os
+import discord
+from discord import Embed
+from discord.ext import commands
+from discord import app_commands
+from dotenv import load_dotenv
 from services.flexzin_force_calculator import FlexzinForceCalculator
 from services.chess_com_api_client import ChessComApiClient
 from infrastructure.redis_repository import RedisRepository
 
-async def main():
-    player_nickname = input("Forneça o nome do usuário: ")
-    chess_com_api_client = ChessComApiClient()
-    redis_repository = RedisRepository()
-    flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client, redis_repository)
-    result = await flexzin_force_calculator.get_flexzin_force_by_time_control(player_nickname)
-    icons = {
-        "rapid": "🕒 Rapid",
-        "blitz": "⚡ Blitz",
-        "bullet": "💥 Bullet",
-    }
+load_dotenv()
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "")
 
-    has_results = False
+chess_com_api_client = ChessComApiClient()
+redis_repository = RedisRepository()
+flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client, redis_repository)
+icons = {
+    "rapid": "🕒 Rapid",
+    "blitz": "⚡ Blitz",
+    "bullet": "💥 Bullet",
+}
+
+def close_redis():
+    asyncio.run(redis_repository.close())
+atexit.register(close_redis)
+
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    await bot.tree.sync()
+    print(f"Bot pronto! Logado como {bot.user}")
+
+@bot.tree.command(name="flexzin_force", description="Verifica a força do jogador em relação ao Flexzin")
+@app_commands.describe(player_nickname="Nickname do jogador no Chess.com")
+async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
+
+    player_nickname = player_nickname.strip().replace(" ", "_")
+    player_data_found = False
+
+    await interaction.response.defer()
+    try:
+        result = await asyncio.wait_for(
+            flexzin_force_calculator.get_flexzin_force_by_time_control(player_nickname),
+            timeout=30
+        )
+    except Exception as e:
+        await interaction.followup.send(f"❌ Ocorreu um erro inesperado: {e}")
+        print(f"Erro inesperado: {e}")
+        return
+
+    embed = Embed(
+        title=f"♟️ {player_nickname}",
+        url=f"https://www.chess.com/member/{(player_nickname)}",
+        description="Resultado dos cálculos de Flexzin Force ",
+        color=0xEDBE3E
+    )
+    player_profile = chess_com_api_client.get_player_profile_data(player_nickname)
+    avatar_url = player_profile.get("avatar")
+    if avatar_url:
+        embed.set_thumbnail(url=avatar_url)
+
     for time_control, label in icons.items():
         value = result.get(time_control)
-
         if not value:
             continue
-
-        has_results = True
-
+        player_data_found = True
         if value > 1.0:
             status = "superioridade"
             percent = abs(int((value - 1.0) * 100))
@@ -33,22 +78,14 @@ async def main():
         else:
             status = "igualdade"
             percent = 0
+        if status == "igualdade":
+            embed.add_field(name=f"{label}", value=f"{value} — igualdade", inline=False)
+        else:
+            embed.add_field(name=f"{label}", value=f"{value} — {percent}% de {status}", inline=False)
 
-        if(status == "igualdade"):
-            print(
-                f"{label}: {value}, "
-                f"apresentando igualdade."
-            )
-        else:    
-            print(
-                f"{label}: {value}, "
-                f"apresentando {percent}% de {status}."
-            )
+    if not player_data_found:
+        embed.description = f"O jogador {player_nickname} não tem partidas rated para comparar com o Flexzin."
+    
+    await interaction.followup.send(embed=embed)
 
-    if not has_results:
-        print("O jogador não tem partidas rated para comparar com o Flexzin.")
-
-    await redis_repository.close()
-        
-if __name__ == "__main__":
-    asyncio.run(main())
+bot.run(DISCORD_TOKEN)
