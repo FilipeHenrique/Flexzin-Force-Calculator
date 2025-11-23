@@ -9,7 +9,7 @@ O FF gera um índice onde:
 - **< 1.0** → jogador mais fraco  
 
 📄 **Documento oficial completo (PDF):**  
-[Flexzin Force.pdf](docs/FlexzinForce.pdf)
+[Flexzin Force.pdf](./docs/FlexzinForce.pdf)
 
 ---
 
