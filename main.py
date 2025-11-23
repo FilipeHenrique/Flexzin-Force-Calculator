@@ -4,22 +4,20 @@ from datetime import datetime
 import asyncio
 
 # TO DO
-    # VALIDAÇÃO, SE A PESSOA JOGOU OU NAO UM RITMO, DAI SIM USA E COLOCA NA FÓRMULA
-    # AJUSTAR OS DICIONÁRIOS PRA PREENCHER BASEADO NO CONST TIME_CONTROLS PRA EVITAR REPETIÇÃO DE CÓDIGO
     # QUEBRAR CÓDIGO EM CLASSES ESPECÍFICAS
     # CODAR PARALELIMSMO PARA MELHORAR PERFORMANCE
-    # DA PRA PEGAR O USERNAME AO INVÉS DE VER SE O NOME TA NO ID DO BLACK OR WHITE, E AI PEGAR O RATING
 
-
+CHESS_COM_BASE_URL = "https://api.chess.com"
 FLEXZIN_NICKNAME = "FIexPrime"
-Z = 1.96
 TIME_CONTROLS = ["rapid", "blitz", "bullet"]
+Z = 1.96
+
 
 # TO DO, FAZER SER DE FATO ASYNC, REQUESTS BLOQUEIA A THREAD
 async def get_games_from_chess_com(player_nickname, current_year, current_month):
     # header to avoid cloudflare blocking
     headers = {"User-Agent": "flexzin-force/1.0"}
-    response = requests.get(f"https://api.chess.com/pub/player/{player_nickname}/games/{current_year}/{current_month}", headers=headers)
+    response = requests.get(f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}/games/{current_year}/{current_month}", headers=headers)
     return response
 
 # TO DO, ARMAZENAR EM TASKS PRA FAZER ASYNC AO INVÉS DE CHAMAR EM O(N)
@@ -52,11 +50,10 @@ async def get_flexzin_force_by_time_control(player_nickname: str):
     player_force_by_time_control = calculate_player_force_by_time_control(player_games_from_last_twelve_months, player_nickname)
     flexzin_force_by_time_control = calculate_player_force_by_time_control(flexzin_games_from_last_twelve_months, FLEXZIN_NICKNAME)
 
-    flexzin_force_results_by_time_control = {
-        "rapid": round(player_force_by_time_control["rapid"]/flexzin_force_by_time_control["rapid"],2),
-        "blitz": round(player_force_by_time_control["blitz"]/flexzin_force_by_time_control["blitz"],2),
-        "bullet": round(player_force_by_time_control["bullet"]/flexzin_force_by_time_control["bullet"],2),
-    }
+    flexzin_force_results_by_time_control = {}
+    for time_control, player_force in player_force_by_time_control.items():
+        if player_force is not None:
+            flexzin_force_results_by_time_control[time_control] = round(player_force_by_time_control[time_control]/flexzin_force_by_time_control[time_control],2)
 
     return flexzin_force_results_by_time_control
 
@@ -70,52 +67,59 @@ def calculate_player_force_by_time_control(player_games_from_last_twelve_months,
 
     for month in player_games_from_last_twelve_months: 
         for game in month:     
-            player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["@id"].lower() else game["black"]["rating"]
+            player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["username"].lower() else game["black"]["rating"]
             if(game["time_class"] in TIME_CONTROLS) and game["rated"] is True:
                 player_ratings_by_time_control[game["time_class"]].append(player_rating)
 
-    # calcula a média dos ratings
-    average_ratings_by_time_control = {
-        time_control: (sum(rating)/len(rating) if rating else None)
-        for time_control, rating in player_ratings_by_time_control.items()
-    }
+    # resultados finais
+    average_ratings_by_time_control = {}
+    standard_deviation_by_time_control = {}
+    error_margin_by_time_control = {}
+    player_force_by_time_control = {}
 
-    # calcula a soma da diferença dos quadrados do rating, por ritmo
-    square_differences_sum_by_time_control = {
-        "rapid": 0,
-        "blitz": 0,
-        "bullet": 0
-    }
-    for time_control in player_ratings_by_time_control.keys():
-        for rating in player_ratings_by_time_control[time_control]:
-            square_differences_sum_by_time_control[time_control] = square_differences_sum_by_time_control[time_control] + pow(rating - average_ratings_by_time_control[time_control], 2)
+    for time_control, ratings in player_ratings_by_time_control.items():
+        # se vazio → tudo None
+        if not ratings:
+            average_ratings_by_time_control[time_control] = None
+            standard_deviation_by_time_control[time_control] = None
+            error_margin_by_time_control[time_control] = None
+            player_force_by_time_control[time_control] = None
+            continue
 
-    standard_deviation_by_time_control = {
-        "rapid": sqrt(square_differences_sum_by_time_control["rapid"]/len(player_ratings_by_time_control["rapid"])-1),
-        "blitz": sqrt(square_differences_sum_by_time_control["blitz"]/len(player_ratings_by_time_control["blitz"])-1),
-        "bullet": sqrt(square_differences_sum_by_time_control["bullet"]/len(player_ratings_by_time_control["bullet"])-1),
-    }
+        # média
+        avg = sum(ratings) / len(ratings)
+        average_ratings_by_time_control[time_control] = avg
 
-    error_margin_by_time_control = {
-        "rapid":  Z * (standard_deviation_by_time_control["rapid"]/sqrt(len(player_ratings_by_time_control["rapid"]))),
-        "blitz": Z * (standard_deviation_by_time_control["blitz"]/sqrt(len(player_ratings_by_time_control["blitz"]))),
-        "bullet": Z * (standard_deviation_by_time_control["bullet"]/sqrt(len(player_ratings_by_time_control["bullet"])))
-    }
+        # soma dos quadrados
+        square_sum = sum((r - avg) ** 2 for r in ratings)
 
-    player_force_by_time_control = {
-        "rapid": average_ratings_by_time_control["rapid"] - error_margin_by_time_control["rapid"],
-        "blitz": average_ratings_by_time_control["blitz"] - error_margin_by_time_control["blitz"],
-        "bullet": average_ratings_by_time_control["bullet"] - error_margin_by_time_control["bullet"]
-    }
+        # desvio padrão (com n-1)
+        sd = sqrt(square_sum / (len(ratings) - 1))
+        standard_deviation_by_time_control[time_control] = sd
+
+        # margem de erro
+        error = Z * (sd / sqrt(len(ratings)))
+        error_margin_by_time_control[time_control] = error
+
+        # força
+        player_force_by_time_control[time_control] = avg - error
 
     return player_force_by_time_control
 
 async def main():
     player_nickname = input("Forneça o nome do usuário: ")
     result = await get_flexzin_force_by_time_control(player_nickname)
-    print(f"🕒 Rapid: {result["rapid"]}, apresentando {int((result["rapid"]-1.0)*100)}% de {"superioridade" if result["rapid"] > 1.0 else "inferioridade"}.")
-    print(f"⚡ Blitz: {result["blitz"]}, apresentando {int((result["blitz"]-1.0)*100)}% de {"superioridade" if result["blitz"] > 1.0 else "inferioridade"}.")
-    print(f"💥 Bullet: {result["bullet"]}, apresentando {int((result["bullet"]-1.0)*100)}% de {"superioridade" if result["bullet"] > 1.0 else "inferioridade"}.")
-
+    has_results = False
+    if(result.get("rapid")):
+        has_results = True
+        print(f"🕒 Rapid: {result["rapid"]}, apresentando {int((result["rapid"]-1.0)*100)}% de {"superioridade" if result["rapid"] > 1.0 else "inferioridade"}.")
+    if(result.get("blitz")):
+        has_results = True
+        print(f"⚡ Blitz: {result["blitz"]}, apresentando {int((result["blitz"]-1.0)*100)}% de {"superioridade" if result["blitz"] > 1.0 else "inferioridade"}.")
+    if(result.get("bullet")):
+        has_results = True
+        print(f"💥 Bullet: {result["bullet"]}, apresentando {int((result["bullet"]-1.0)*100)}% de {"superioridade" if result["bullet"] > 1.0 else "inferioridade"}.")
+    if has_results is False:
+        print("O jogador não tem partidas rated para comparar com o Flexzin.")
 if __name__ == "__main__":
     asyncio.run(main())
