@@ -1,8 +1,5 @@
 import os
-from dotenv import load_dotenv
 import redis.asyncio as redis
-
-load_dotenv()
 
 class RedisRepository:
     def __init__(self):
