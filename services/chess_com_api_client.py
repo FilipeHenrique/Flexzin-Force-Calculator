@@ -1,8 +1,7 @@
 import requests
 from datetime import datetime
 
-# TO DO:
-    # Armazenar os gets dos 12 meses em tasks (aihttp provavelmente) e fazer as requests serem async, fazendo os 12 meses em paralelo
+# TODO: Armazenar os gets dos 12 meses em tasks (aihttp provavelmente) e fazer as requests serem async, fazendo os 12 meses em paralelo
 
 CHESS_COM_BASE_URL = "https://api.chess.com"
 
@@ -11,7 +10,6 @@ class ChessComApiClient():
         headers = {"User-Agent": "flexzin-force/1.0"}
         response = requests.get(f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}/games/{current_year}/{current_month}", headers=headers)
         return response
-
 
     async def get_player_games_from_last_twelve_months(self, player_nickname: str):
         player_games_from_last_twelve_months = []

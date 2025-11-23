@@ -30,11 +30,7 @@ class FlexzinForceCalculator:
         return flexzin_force_results_by_time_control
 
     def calculate_player_force_by_time_control(self, player_games_from_last_twelve_months, player_nickname):
-        player_ratings_by_time_control = {
-            "rapid": [],
-            "blitz": [],
-            "bullet": [],
-        }
+        player_ratings_by_time_control = {time_control: [] for time_control in TIME_CONTROLS}
         for month in player_games_from_last_twelve_months: 
             for game in month:     
                 player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["username"].lower() else game["black"]["rating"]
@@ -46,10 +42,10 @@ class FlexzinForceCalculator:
             if not ratings:
                 player_force_by_time_control[time_control] = None
                 continue
-            avg = sum(ratings) / len(ratings)
-            square_sum = sum((r - avg) ** 2 for r in ratings)
+            average_rating = sum(ratings) / len(ratings)
+            square_sum = sum((r - average_rating) ** 2 for r in ratings)
             standard_deviation = sqrt(square_sum / (len(ratings) - 1))
             error_margin = Z * (standard_deviation / sqrt(len(ratings)))
-            player_force_by_time_control[time_control] = avg - error_margin
+            player_force_by_time_control[time_control] = average_rating - error_margin
 
         return player_force_by_time_control
