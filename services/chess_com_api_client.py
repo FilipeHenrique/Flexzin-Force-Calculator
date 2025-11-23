@@ -1,28 +1,37 @@
-import requests
+import aiohttp
+import asyncio
 from datetime import datetime
-
-# TODO: Armazenar os gets dos 12 meses em tasks (aihttp provavelmente) e fazer as requests serem async, fazendo os 12 meses em paralelo
 
 CHESS_COM_BASE_URL = "https://api.chess.com"
 
-class ChessComApiClient():
-    async def get_games_from_chess_com(self, player_nickname, current_year, current_month):
+class ChessComApiClient:
+    async def get_games_from_chess_com(self, session, player_nickname, year, month):
+        url = f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}/games/{year}/{month}"
         headers = {"User-Agent": "flexzin-force/1.0"}
-        response = requests.get(f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}/games/{current_year}/{current_month}", headers=headers)
-        return response
+        
+        async with session.get(url, headers=headers) as resp:
+            data = await resp.json()
+            return data.get("games", [])
 
     async def get_player_games_from_last_twelve_months(self, player_nickname: str):
-        player_games_from_last_twelve_months = []
-        current_datetime = datetime.now()
-        current_year = current_datetime.year
-        current_month = current_datetime.month
-        i = 0
-        while(i < 12):
-            current_month = current_month-i
-            if(current_month < 1):
-                current_month = 12
-                current_year = current_year-1
-            response = await self.get_games_from_chess_com(player_nickname, current_year, current_month)
-            player_games_from_last_twelve_months.append(response.json().get("games", []))
-            i += 1
-        return player_games_from_last_twelve_months
+        tasks = []
+        now = datetime.now()
+        year = now.year
+        month = now.month
+
+        # gera a lista (ano, mês) dos últimos 12 meses corretamente
+        months = []
+        for _ in range(12):
+            months.append((year, month))
+            month -= 1
+            if month == 0:
+                month = 12
+                year -= 1
+
+        async with aiohttp.ClientSession() as session:
+            for y, m in months:
+                tasks.append(
+                    self.get_games_from_chess_com(session, player_nickname, y, m)
+                )
+
+            return await asyncio.gather(*tasks)
