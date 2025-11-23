@@ -44,6 +44,28 @@ O FF gera um índice onde:
 ## 🚀 Como rodar o projeto
 
 ```bash
-git clone https://github.com/FilipeHenrique/Flexzin-Force-Calculator
+## 1. Clonar o repositório
+git clone https://github.com/FilipeHenrique/Flexzin-Force-Calculator  
+cd Flexzin-Force-Calculator
+
+## 2. Criar e ativar o Virtual Environment (venv)
+**Windows:**  
+python -m venv venv  
+venv\Scripts\activate
+
+**Linux / macOS:**  
+python3 -m venv venv  
+source venv/bin/activate
+
+## 3. Instalar dependências
+pip install -r requirements.txt
+
+## 4. Configurar variáveis de ambiente
+Renomeie `env-example` para `.env` e ajuste os valores se necessário.
+
+## 5. Rodar o Redis via Docker Compose
+docker-compose up -d
+
+## 6. Rodar o projeto
 python main.py
 ```
