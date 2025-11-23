@@ -1,5 +1,4 @@
-pyinstrument
-memory_profiler
-psutil
 requests
 aiohttp
+redis
+dotenv

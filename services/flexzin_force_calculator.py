@@ -1,33 +1,41 @@
 from math import sqrt
+from infrastructure.redis_repository import RedisRepository
 from services.chess_com_api_client import ChessComApiClient
-import asyncio
+import json
 
 FLEXZIN_NICKNAME = "FIexPrime"
 TIME_CONTROLS = ["rapid", "blitz", "bullet"]
 Z = 1.96
 
 class FlexzinForceCalculator:
-    def __init__(self, chess_com_api_client: ChessComApiClient):
+    def __init__(self, chess_com_api_client: ChessComApiClient, redis_repository: RedisRepository):
         self.chess_com_api_client = chess_com_api_client    
+        self.redis_repository = redis_repository
 
     async def get_flexzin_force_by_time_control(self, player_nickname: str):
-        player_task = asyncio.create_task(
-            self.chess_com_api_client.get_player_games_from_last_six_months(player_nickname)
-        )
-        flexzin_task = asyncio.create_task(
-            self.chess_com_api_client.get_player_games_from_last_six_months(FLEXZIN_NICKNAME)
-        )
+        cached_flexzin_force = await self.redis_repository.get(FLEXZIN_NICKNAME)
+        cached_player_force = await self.redis_repository.get(player_nickname)
 
-        player_games_from_last_six_months, flexzin_games_from_last_six_months = await asyncio.gather(player_task, flexzin_task)
+        if((cached_flexzin_force)):
+            flexzin_force_by_time_control = json.loads((cached_flexzin_force))
+        else:
+            flexzin_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_six_months(FLEXZIN_NICKNAME)
+            flexzin_force_by_time_control = self.calculate_player_force_by_time_control(flexzin_games_from_last_six_months, FLEXZIN_NICKNAME)
+            await self.redis_repository.set(FLEXZIN_NICKNAME, json.dumps(flexzin_force_by_time_control), expire= 200)
 
-        player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_six_months, player_nickname)
-        flexzin_force_by_time_control = self.calculate_player_force_by_time_control(flexzin_games_from_last_six_months, FLEXZIN_NICKNAME)
+        if(cached_player_force):
+            player_force_by_time_control = json.loads(cached_player_force)
+        else:
+            player_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_six_months(player_nickname)
+            player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_six_months, player_nickname)
+            await self.redis_repository.set(player_nickname, json.dumps(player_force_by_time_control), expire= 200)         
 
         flexzin_force_results_by_time_control = {}
         for time_control, player_force in player_force_by_time_control.items():
             if player_force is not None:
                 flexzin_force_results_by_time_control[time_control] = round(player_force_by_time_control[time_control]/flexzin_force_by_time_control[time_control],2)
 
+        await self.redis_repository.close()
         return flexzin_force_results_by_time_control
 
     def calculate_player_force_by_time_control(self, player_games_from_last_six_months, player_nickname):

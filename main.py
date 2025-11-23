@@ -1,11 +1,13 @@
+import asyncio
 from services.flexzin_force_calculator import FlexzinForceCalculator
 from services.chess_com_api_client import ChessComApiClient
-import asyncio
+from infrastructure.redis_repository import RedisRepository
 
 async def main():
     player_nickname = input("Forneça o nome do usuário: ")
     chess_com_api_client = ChessComApiClient()
-    flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client)
+    redis_repository = RedisRepository()
+    flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client, redis_repository)
     result = await flexzin_force_calculator.get_flexzin_force_by_time_control(player_nickname)
     icons = {
         "rapid": "🕒 Rapid",
@@ -45,6 +47,8 @@ async def main():
 
     if not has_results:
         print("O jogador não tem partidas rated para comparar com o Flexzin.")
+
+    await redis_repository.close()
         
 if __name__ == "__main__":
     asyncio.run(main())
