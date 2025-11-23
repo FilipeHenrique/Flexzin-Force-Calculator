@@ -42,7 +42,21 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
     player_nickname = player_nickname.strip().replace(" ", "_")
     player_games_found = False
 
+    embed = Embed(
+        title=f"♟️ {player_nickname}",
+        url=f"https://www.chess.com/member/{(player_nickname)}",
+        description="Resultado dos cálculos de Flexzin Force ",
+        color=0xEDBE3E
+    )
+
     await interaction.response.defer()
+
+    player_profile = chess_com_api_client.get_player_profile_data(player_nickname)
+    if not player_profile:
+        embed.description = f"O jogador {player_nickname} não existe no Chess.com"
+        await interaction.followup.send(embed=embed)
+        return
+
     try:
         result = await asyncio.wait_for(
             flexzin_force_calculator.get_flexzin_force_by_time_control(player_nickname),
@@ -53,13 +67,6 @@ async def flexzin_force(interaction: discord.Interaction, player_nickname: str):
         print(f"Erro inesperado: {e}")
         return
 
-    embed = Embed(
-        title=f"♟️ {player_nickname}",
-        url=f"https://www.chess.com/member/{(player_nickname)}",
-        description="Resultado dos cálculos de Flexzin Force ",
-        color=0xEDBE3E
-    )
-    player_profile = chess_com_api_client.get_player_profile_data(player_nickname)
     avatar_url = player_profile.get("avatar")
     if avatar_url:
         embed.set_thumbnail(url=avatar_url)
