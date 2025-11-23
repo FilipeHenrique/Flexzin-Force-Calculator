@@ -4,13 +4,21 @@ from datetime import datetime
 import asyncio
 
 # TO DO
-    # LEMBRAR DE CONSIDERAR APENAS PARTIDAS RATED
     # AJUSTAR OS DICIONÁRIOS PRA PREENCHER BASEADO NO CONST TIME_CONTROLS PRA EVITAR REPETIÇÃO DE CÓDIGO
+    # QUEBRAR CÓDIGO EM CLASSES ESPECÍFICAS
+    # CODAR PARALELIMSMO PARA MELHORAR PERFORMANCE
 
 
 FLEXZIN_NICKNAME = "FIexPrime"
 Z = 1.96
 TIME_CONTROLS = ["rapid", "blitz", "bullet"]
+
+# TO DO, FAZER SER DE FATO ASYNC, REQUESTS BLOQUEIA A THREAD
+async def get_games_from_chess_com(player_nickname, current_year, current_month):
+    # header to avoid cloudflare blocking
+    headers = {"User-Agent": "flexzin-force/1.0"}
+    response = requests.get(f"https://api.chess.com/pub/player/{player_nickname}/games/{current_year}/{current_month}", headers=headers)
+    return response
 
 # TO DO, ARMAZENAR EM TASKS PRA FAZER ASYNC AO INVÉS DE CHAMAR EM O(N)
 async def get_player_games_from_last_twelve_months(player_nickname: str):
@@ -29,15 +37,8 @@ async def get_player_games_from_last_twelve_months(player_nickname: str):
         i += 1
     return player_games_from_last_twelve_months
 
- # TO DO, FAZER SER DE FATO ASYNC, REQUESTS BLOQUEIA A THREAD
-async def get_games_from_chess_com(player_nickname, current_year, current_month):
-    # header to avoid cloudflare blocking
-    headers = {"User-Agent": "flexzin-force/1.0"}
-    response = requests.get(f"https://api.chess.com/pub/player/{player_nickname}/games/{current_year}/{current_month}", headers=headers)
-    return response
 
-
-async def calculate_flexzin_force_by_time_control(player_nickname: str):
+async def get_flexzin_force_by_time_control(player_nickname: str):
     player_task = asyncio.create_task(
         get_player_games_from_last_twelve_months(player_nickname)
     )
@@ -46,18 +47,18 @@ async def calculate_flexzin_force_by_time_control(player_nickname: str):
     )
 
     player_games_from_last_twelve_months, flexzin_games_from_last_twelve_months = await asyncio.gather(player_task, flexzin_task)
-    player_force_by_time_control = get_player_force_by_time_control(player_games_from_last_twelve_months, player_nickname)
-    flexzin_force_by_time_control = get_player_force_by_time_control(flexzin_games_from_last_twelve_months, FLEXZIN_NICKNAME)
+    player_force_by_time_control = calculate_player_force_by_time_control(player_games_from_last_twelve_months, player_nickname)
+    flexzin_force_by_time_control = calculate_player_force_by_time_control(flexzin_games_from_last_twelve_months, FLEXZIN_NICKNAME)
 
     flexzin_force_results_by_time_control = {
-        "rapid": player_force_by_time_control["rapid"]/flexzin_force_by_time_control["rapid"],
-        "blitz": player_force_by_time_control["blitz"]/flexzin_force_by_time_control["blitz"],
-        "bullet": player_force_by_time_control["bullet"]/flexzin_force_by_time_control["bullet"],
+        "rapid": round(player_force_by_time_control["rapid"]/flexzin_force_by_time_control["rapid"],2),
+        "blitz": round(player_force_by_time_control["blitz"]/flexzin_force_by_time_control["blitz"],2),
+        "bullet": round(player_force_by_time_control["bullet"]/flexzin_force_by_time_control["bullet"],2),
     }
 
     return flexzin_force_results_by_time_control
 
-def get_player_force_by_time_control(player_games_from_last_twelve_months, player_nickname):
+def calculate_player_force_by_time_control(player_games_from_last_twelve_months, player_nickname):
     # organiza os ratings por ritmo
     player_ratings_by_time_control = {
         "rapid": [],
@@ -109,10 +110,10 @@ def get_player_force_by_time_control(player_games_from_last_twelve_months, playe
 
 async def main():
     player_nickname = input("Forneça o nome do usuário: ")
-    result = await calculate_flexzin_force_by_time_control(player_nickname)
-    print("Rapid: ", result["rapid"])
-    print("Blitz: ", result["blitz"])
-    print("Bullet: ", result["bullet"])
+    result = await get_flexzin_force_by_time_control(player_nickname)
+    print(f"🕒 Rapid: {result["rapid"]}, apresentando {int((result["rapid"]-1.0)*100)}% de {"superioridade" if result["rapid"] > 1.0 else "inferioridade"}.")
+    print(f"⚡ Blitz: {result["blitz"]}, apresentando {int((result["blitz"]-1.0)*100)}% de {"superioridade" if result["blitz"] > 1.0 else "inferioridade"}.")
+    print(f"💥 Bullet: {result["bullet"]}, apresentando {int((result["bullet"]-1.0)*100)}% de {"superioridade" if result["bullet"] > 1.0 else "inferioridade"}.")
 
 if __name__ == "__main__":
     asyncio.run(main())
