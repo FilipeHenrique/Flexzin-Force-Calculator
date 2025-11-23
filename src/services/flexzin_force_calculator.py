@@ -43,8 +43,8 @@ class FlexzinForceCalculator:
         player_ratings_by_time_control = {time_control: [] for time_control in TIME_CONTROLS}
         for month in player_games_from_last_six_months: 
             for game in month:     
-                player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["username"].lower() else game["black"]["rating"]
                 if(game["time_class"] in TIME_CONTROLS) and game["rated"] is True:
+                    player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["username"].lower() else game["black"]["rating"]
                     player_ratings_by_time_control[game["time_class"]].append(player_rating)
 
         player_force_by_time_control = {}     

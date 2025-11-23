@@ -17,7 +17,6 @@ class ChessComApiClient:
     async def get_games_from_chess_com(self, session, player_nickname, year, month):
         url = f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}/games/{year}/{month}"
         headers = {"User-Agent": "flexzin-force/1.0"}
-        
         async with session.get(url, headers=headers) as resp:
             data = await resp.json()
             return data.get("games", [])
@@ -38,8 +37,9 @@ class ChessComApiClient:
 
         async with aiohttp.ClientSession() as session:
             for y, m in months:
+                month_str = f"{m:02d}"  # garante 2 dígitos, necessário pra API do chess.com
                 tasks.append(
-                    self.get_games_from_chess_com(session, player_nickname, y, m)
+                    self.get_games_from_chess_com(session, player_nickname, y, month_str)
                 )
 
             return await asyncio.gather(*tasks)
