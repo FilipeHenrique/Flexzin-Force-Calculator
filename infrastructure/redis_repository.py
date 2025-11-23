@@ -9,10 +9,14 @@ class RedisRepository:
         host = os.getenv("REDIS_HOST", "localhost")
         port = int(os.getenv("REDIS_PORT", 6379))
         password = os.getenv("REDIS_PASSWORD", None)
+        username = os.getenv("REDIS_USERNAME", None)  
 
-        redis_url = f"redis://{host}:{port}"
-        if password:
+        if username and password:
+            redis_url = f"redis://{username}:{password}@{host}:{port}"
+        elif password:
             redis_url = f"redis://:{password}@{host}:{port}"
+        else:
+            redis_url = f"redis://{host}:{port}"
 
         self._redis = redis.from_url(redis_url, decode_responses=True)
 
