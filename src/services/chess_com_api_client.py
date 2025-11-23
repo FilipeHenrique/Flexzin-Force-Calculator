@@ -1,10 +1,11 @@
+import os
 import aiohttp
 import asyncio
 from datetime import datetime
 
 import requests
 
-CHESS_COM_BASE_URL = "https://api.chess.com"
+CHESS_COM_BASE_URL = os.getenv("CHESS_COM_BASE_URL", "https://api.chess.com")
 
 class ChessComApiClient:
     def get_player_profile_data(self, player_nickname: str):
