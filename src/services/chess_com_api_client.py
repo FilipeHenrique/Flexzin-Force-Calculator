@@ -8,6 +8,13 @@ import requests
 CHESS_COM_BASE_URL = os.getenv("CHESS_COM_BASE_URL", "https://api.chess.com")
 
 class ChessComApiClient:
+    def __init__(self):
+        self.flexzin_nickname = os.getenv("FLEXZIN_NICKNAME", "")
+        self.session = None #aiohttp limitation, needed to implement an init method
+        
+    async def init(self):
+        self.session = aiohttp.ClientSession()
+        
     def get_player_profile_data(self, player_nickname: str):
         url = f"{CHESS_COM_BASE_URL}/pub/player/{player_nickname}"
         headers = {"User-Agent": "flexzin-force/1.0"}
@@ -37,7 +44,7 @@ class ChessComApiClient:
                 month = 12
                 year -= 1
 
-        async with aiohttp.ClientSession() as session:
+        async with self.session as session:
             for y, m in months:
                 month_str = f"{m:02d}"  # garante 2 dígitos, necessário pra API do chess.com
                 tasks.append(
@@ -45,3 +52,12 @@ class ChessComApiClient:
                 )
 
             return await asyncio.gather(*tasks)
+
+    async def get_flexzin_status(self):
+        url = f"{CHESS_COM_BASE_URL}/pub/player/{self.flexzin_nickname}/stats"
+        headers = {"User-Agent": "flexzin-force/1.0"}
+        async with self.session.get(url, headers=headers) as resp:
+            return await resp.json()
+        
+    async def close_session(self):
+        await self.session.close()
