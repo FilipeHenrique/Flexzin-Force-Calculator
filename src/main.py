@@ -1,4 +1,3 @@
-import atexit
 import asyncio
 import os
 import discord
@@ -165,6 +164,7 @@ async def main():
 
     try:
         await bot.start(DISCORD_TOKEN)
+
     finally:
         await redis_repository.close()
         await chess_com_api_client.close_session()

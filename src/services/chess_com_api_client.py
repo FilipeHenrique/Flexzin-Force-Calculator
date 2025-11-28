@@ -6,6 +6,7 @@ from datetime import datetime
 import requests
 
 CHESS_COM_BASE_URL = os.getenv("CHESS_COM_BASE_URL", "https://api.chess.com")
+MONTHS_QUANTITY_TO_GET_GAMES_FROM = os.getenv("MONTHS_QUANTITY_TO_GET_GAMES_FROM", 6)
 
 class ChessComApiClient:
     def __init__(self):
@@ -30,14 +31,14 @@ class ChessComApiClient:
             data = await resp.json()
             return data.get("games", [])
 
-    async def get_player_games_from_last_six_months(self, player_nickname: str):
+    async def get_player_games_from_last_months(self, player_nickname: str):
         tasks = []
         now = datetime.now()
         year = now.year
         month = now.month
 
         months = []
-        for _ in range(6):
+        for _ in range(MONTHS_QUANTITY_TO_GET_GAMES_FROM):
             months.append((year, month))
             month -= 1
             if month == 0:
