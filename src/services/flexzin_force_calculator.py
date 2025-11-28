@@ -21,14 +21,14 @@ class FlexzinForceCalculator:
         if((cached_flexzin_force)):
             flexzin_force_by_time_control = json.loads((cached_flexzin_force))
         else:
-            flexzin_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_six_months(self.flexzin_nickname)
+            flexzin_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_months(self.flexzin_nickname)
             flexzin_force_by_time_control = self.calculate_player_force_by_time_control(flexzin_games_from_last_six_months, self.flexzin_nickname)
             await self.redis_repository.set(self.flexzin_nickname, json.dumps(flexzin_force_by_time_control), expire= HOUR_IN_SECONDS)
 
         if(cached_player_force):
             player_force_by_time_control = json.loads(cached_player_force)
         else:
-            player_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_six_months(player_nickname)
+            player_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_months(player_nickname)
             player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_six_months, player_nickname)
             await self.redis_repository.set(player_nickname, json.dumps(player_force_by_time_control), expire= HOUR_IN_SECONDS)         
 
