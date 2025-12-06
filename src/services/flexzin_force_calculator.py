@@ -1,7 +1,7 @@
 from math import sqrt
 import os
 
-from infrastructure.redis_repository import RedisRepository
+from services.redis_service import RedisService
 from services.chess_com_api_client import ChessComApiClient
 import json
 
@@ -10,7 +10,7 @@ HOUR_IN_SECONDS = 3600
 Z = 1.96
 
 class FlexzinForceCalculator:
-    def __init__(self, chess_com_api_client: ChessComApiClient, redis_repository: RedisRepository):
+    def __init__(self, chess_com_api_client: ChessComApiClient, redis_repository: RedisService):
         self.chess_com_api_client = chess_com_api_client    
         self.redis_repository = redis_repository
         self.flexzin_nickname = os.getenv("FLEXZIN_NICKNAME", "")
@@ -28,8 +28,8 @@ class FlexzinForceCalculator:
         if(cached_player_force):
             player_force_by_time_control = json.loads(cached_player_force)
         else:
-            player_games_from_last_six_months = await self.chess_com_api_client.get_player_games_from_last_months(player_nickname)
-            player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_six_months, player_nickname)
+            player_games_from_last_months = await self.chess_com_api_client.get_player_games_from_last_months(player_nickname)
+            player_force_by_time_control = self.calculate_player_force_by_time_control(player_games_from_last_months, player_nickname)
             await self.redis_repository.set(player_nickname, json.dumps(player_force_by_time_control), expire= HOUR_IN_SECONDS)         
 
         flexzin_force_results_by_time_control = {}
@@ -40,9 +40,9 @@ class FlexzinForceCalculator:
         await self.redis_repository.close()
         return flexzin_force_results_by_time_control
 
-    def calculate_player_force_by_time_control(self, player_games_from_last_six_months, player_nickname):
+    def calculate_player_force_by_time_control(self, player_games_from_last_months, player_nickname):
         player_ratings_by_time_control = {time_control: [] for time_control in TIME_CONTROLS}
-        for month in player_games_from_last_six_months: 
+        for month in player_games_from_last_months: 
             for game in month:     
                 if(game["time_class"] in TIME_CONTROLS) and game["rated"] is True:
                     player_rating = game["white"]["rating"] if player_nickname.lower() in game["white"]["username"].lower() else game["black"]["rating"]

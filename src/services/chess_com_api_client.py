@@ -5,8 +5,7 @@ from datetime import datetime
 
 import requests
 
-CHESS_COM_BASE_URL = os.getenv("CHESS_COM_BASE_URL", "https://api.chess.com")
-MONTHS_QUANTITY_TO_GET_GAMES_FROM = os.getenv("MONTHS_QUANTITY_TO_GET_GAMES_FROM", 6)
+from config import CHESS_COM_BASE_URL, MONTHS_QUANTITY_TO_GET_GAMES_FROM
 
 class ChessComApiClient:
     def __init__(self):
@@ -45,14 +44,13 @@ class ChessComApiClient:
                 month = 12
                 year -= 1
 
-        async with self.session as session:
-            for y, m in months:
-                month_str = f"{m:02d}"  # garante 2 dígitos, necessário pra API do chess.com
-                tasks.append(
-                    self.get_games_from_chess_com(session, player_nickname, y, month_str)
-                )
+        for y, m in months:
+            month_str = f"{m:02d}"  # garante 2 dígitos, necessário pra API do chess.com
+            tasks.append(
+                self.get_games_from_chess_com(self.session, player_nickname, y, month_str)
+            )
 
-            return await asyncio.gather(*tasks)
+        return await asyncio.gather(*tasks)
 
     async def get_flexzin_status(self):
         url = f"{CHESS_COM_BASE_URL}/pub/player/{self.flexzin_nickname}/stats"
