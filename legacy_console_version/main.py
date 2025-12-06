@@ -1,12 +1,12 @@
 import asyncio
 from services.flexzin_force_calculator import FlexzinForceCalculator
 from services.chess_com_api_client import ChessComApiClient
-from infrastructure.redis_repository import RedisRepository
+from services.redis_service import RedisService
 
 async def main():
     player_nickname = input("Forneça o nome do usuário: ")
     chess_com_api_client = ChessComApiClient()
-    redis_repository = RedisRepository()
+    redis_repository = RedisService()
     flexzin_force_calculator = FlexzinForceCalculator(chess_com_api_client, redis_repository)
     result = await flexzin_force_calculator.get_flexzin_force_by_time_control(player_nickname)
     icons = {
