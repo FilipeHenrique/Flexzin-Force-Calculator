@@ -1,5 +1,5 @@
 from math import sqrt
-from infrastructure.redis_repository import RedisRepository
+from services.redis_service import RedisService
 from services.chess_com_api_client import ChessComApiClient
 import json
 
@@ -9,7 +9,7 @@ HOUR_IN_SECONDS = 3600
 Z = 1.96
 
 class FlexzinForceCalculator:
-    def __init__(self, chess_com_api_client: ChessComApiClient, redis_repository: RedisRepository):
+    def __init__(self, chess_com_api_client: ChessComApiClient, redis_repository: RedisService):
         self.chess_com_api_client = chess_com_api_client    
         self.redis_repository = redis_repository
 
