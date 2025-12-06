@@ -37,7 +37,6 @@ class FlexzinForceCalculator:
             if player_force is not None:
                 flexzin_force_results_by_time_control[time_control] = round(player_force_by_time_control[time_control]/flexzin_force_by_time_control[time_control],2)
 
-        await self.redis_repository.close()
         return flexzin_force_results_by_time_control
 
     def calculate_player_force_by_time_control(self, player_games_from_last_months, player_nickname):
